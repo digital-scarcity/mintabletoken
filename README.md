@@ -32,10 +32,11 @@ docker logs -f mintabletoken_nodeosd_1
 # Setup the following aliases
 ```
 alias cleos='docker exec -it mintabletoken_nodeosd_1 /opt/eosio/bin/cleos -u http://nodeosd:8888 --wallet-url http://keosd:8900'
-alias eosiocpp='docker exec -it mintabletoken_nodeosd_1 eosiocpp'
 ```
 
 # Here is the command to compile
 ```
-eosiocpp -g /eosdev/mintabletoken/mintabletoken.abi /eosdev/mintabletoken/mintabletoken.hpp && eosiocpp -o /eosdev/mintabletoken/mintabletoken.wast /eosdev/mintabletoken/mintabletoken.cpp
+cd mintabletoken
+cmake .
+make
 ```
