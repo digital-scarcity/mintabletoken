@@ -1,83 +1,56 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE.txt
- */
-#pragma once
 
 #include <eosiolib/asset.hpp>
 #include <eosiolib/eosio.hpp>
-
 #include <string>
 
+using std::string;
 using namespace eosio;
-   using std::string;
 
-   class mintabletoken : public contract {
-      public:
-         mintabletoken( account_name self ):contract(self){}
+CONTRACT mintabletoken : public contract
+{
+    using contract::contract;
 
-        // @abi action
-         void create( account_name  issuer,
-                      string        symbol_string,
-                      uint8_t       precision);
+  public:
+    ACTION create(name issuer,
+                string symbol_string,
+                uint8_t precision);
 
-        // @abi action
-         void issue( account_name to, asset quantity, string memo );
+    ACTION issue(name to, asset quantity, string memo);
 
-        // @abi action
-         void transfer( account_name from,
-                        account_name to,
-                        asset        quantity,
-                        string       memo );
-      
-      
-         inline asset get_supply( symbol_name sym )const;
-         
-         inline asset get_balance( account_name owner, symbol_name sym )const;
+    ACTION transfer(name from, name to, asset quantity, string memo);
 
-      private:
+    static asset get_supply(name token_contract_account, symbol_code sym)
+    {
+        stats statstable(token_contract_account, sym.raw());
+        const auto &st = statstable.get(sym.raw());
+        return st.supply;
+    }
 
-        // @abi table accounts i64
-         struct account {
-            asset    balance;
+    static asset get_balance(name token_contract_account, name owner, symbol_code sym)
+    {
+        accounts accountstable(token_contract_account, owner.value);
+        const auto &ac = accountstable.get(sym.raw());
+        return ac.balance;
+    }
 
-            uint64_t primary_key()const { return balance.symbol.name(); }
-         };
+  private:
+    TABLE account
+    {
+        asset balance;
+        uint64_t primary_key() const { return balance.symbol.code().raw(); }
+    };
 
-        // @abi table stat i64
-         struct currencystat {
-            asset          supply;
-            symbol_type    symbol;
-            account_name   issuer;
+    TABLE currency_stats
+    {
+        asset supply;
+        symbol symbol;
+        name issuer;
+        uint64_t primary_key() const { return supply.symbol.code().raw(); }
+    };
 
-            uint64_t primary_key()const { return supply.symbol.name(); }
-         };
+    typedef eosio::multi_index<"accounts"_n, account> accounts;
+    typedef eosio::multi_index<"stat"_n, currency_stats> stats;
 
-         typedef eosio::multi_index<N(accounts), account> accounts;
-         typedef eosio::multi_index<N(stat), currencystat> stats;
-
-         void sub_balance( account_name owner, asset value );
-         void add_balance( account_name owner, asset value, account_name ram_payer );
-
-      public:
-         struct transfer_args {
-            account_name  from;
-            account_name  to;
-            asset         quantity;
-            string        memo;
-         };
-   };
-
-   asset mintabletoken::get_supply( symbol_name sym )const
-   {
-      stats statstable( _self, sym );
-      const auto& st = statstable.get( sym );
-      return st.supply;
-   }
-
-   asset mintabletoken::get_balance( account_name owner, symbol_name sym )const
-   {
-      accounts accountstable( _self, owner );
-      const auto& ac = accountstable.get( sym );
-      return ac.balance;
-   }
+    void sub_balance(name owner, asset value);
+    void add_balance(name owner, asset value, name ram_payer);
+};
